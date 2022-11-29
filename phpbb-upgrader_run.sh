@@ -109,22 +109,64 @@ if [ ! -f "${PHPBB_NEW_TEMP_DIR_FILES}viewtopic.php" ]; then
   fxCatastrophicError "viewtopic.php doesn't exist in ${PHPBB_NEW_TEMP_DIR_FILES}viewtopic.php"
 fi
 
+fxTitle "Removing stuff from the extracted data..."
+rm -f "${PHPBB_NEW_TEMP_DIR_FILES}config.php"
+rm -rf "${PHPBB_NEW_TEMP_DIR_FILES}images"
+rm -rf "${PHPBB_NEW_TEMP_DIR_FILES}files"
+rm -rf "${PHPBB_NEW_TEMP_DIR_FILES}store"
+rm -rf "${PHPBB_NEW_TEMP_DIR_FILES}docs"
+
 fxTitle "Closing the board..."
 ${PHPBB_CLI} config:set board_disable 1
 
 zzmysqldump ${PHPBB_ZZMYSQLDUMP_PROFILE_NAME}
 
-fxTitle "Zipping the current instance for backup..."
-zip -qr9 "${PHPBB_BACKUP_ZIP}" "${PHPBB_DIR}"
-fxOK "OK, backup zip created in ##${PHPBB_BACKUP_ZIP}##"
-fxInfo "$(ls -lh ${PHPBB_BACKUP_ZIP})"
+fxTitle "Copying stuff over from the old directory to the new one..."
+cp -a "${PHPBB_DIR}.gitignore" "${PHPBB_NEW_TEMP_DIR_FILES}"
+cp -a "${PHPBB_DIR}config.php" "${PHPBB_NEW_TEMP_DIR_FILES}"
+cp -a "${PHPBB_DIR}ext" "${PHPBB_NEW_TEMP_DIR_FILES}"
+cp -a "${PHPBB_DIR}images" "${PHPBB_NEW_TEMP_DIR_FILES}"
+cp -a "${PHPBB_DIR}files" "${PHPBB_NEW_TEMP_DIR_FILES}"
+cp -a "${PHPBB_DIR}store" "${PHPBB_NEW_TEMP_DIR_FILES}"
+cp -a "${PHPBB_DIR}styles" "${PHPBB_NEW_TEMP_DIR_FILES}"
+cp -a "${PHPBB_DIR}mobiquo" "${PHPBB_NEW_TEMP_DIR_FILES}"
+cp -a "${PHPBB_DIR}language/it" "${PHPBB_NEW_TEMP_DIR_FILES}language"
 
-fxTitle "Test the backup..."
-unzip -l ${PHPBB_BACKUP_ZIP}
-unzip -qt ${PHPBB_BACKUP_ZIP}
-if [ "$?" != 0 ]; then
-  rm -f "${PHPBB_BACKUP_ZIP}"
-  fxCatastrophicError "Failure!"
-fi
+fxTitle "Removing stuff from the new instance..."
+rm -rf "${PHPBB_NEW_TEMP_DIR_FILES}ext/phpbb/viglink"
+find "${PHPBB_NEW_TEMP_DIR_FILES}store" -type f -mtime +15 -name '*.log' -delete
+
+fxTitle "DB upgrade..."
+chmod ugo=rwx ${PHPBB_NEW_TEMP_DIR} -R
+sudo -u www-data -H XDEBUG_MODE=off php ${PHPBB_NEW_TEMP_DIR_FILES}bin/phpbbcli.php db:migrate --safe-mode
+
+fxTitle "Removing the install directory..."
+rm -rf "${PHPBB_NEW_TEMP_DIR_FILES}install"
+
+fxTitle "Setting root:www-data as owner..."
+chown root:www-data "${PHPBB_NEW_TEMP_DIR_FILES}" -R
+
+fxTitle "Applying general, strict permissions..."
+# reset, to make "rwX" work as expected
+chmod ugo= "${PHPBB_NEW_TEMP_DIR_FILES}" -R
+chmod u=rwX,g=rX,o= "${PHPBB_NEW_TEMP_DIR_FILES}" -R
+
+fxTitle "Making some folders writable by www-data..."
+chmod ug=rwX,o= ${PHPBB_NEW_TEMP_DIR_FILES}cache -R
+chmod ug=rwX,o= ${PHPBB_NEW_TEMP_DIR_FILES}images/avatars/upload -R
+chmod ug=rwX,o= ${PHPBB_NEW_TEMP_DIR_FILES}files -R
+chmod ug=rwX,o= ${PHPBB_NEW_TEMP_DIR_FILES}store -R
+
+fxTitle "🚀🚀🚀 BRACE FOR IMPACT - MOVING THE OLD INSTANCE TO BACKUP 🚀🚀🚀"
+mv "${PHPBB_DIR}" "${PHPBB_BACKUP_OLD_DIR}"
+
+fxTitle "🚀🚀🚀 HOLD TIGHT - MOVING THE NEW INSTANCE IN 🚀🚀🚀"
+mv "${PHPBB_NEW_TEMP_DIR_FILES}" "${PHPBB_DIR}"
+
+fxTitle "Re-opening the board..."
+${PHPBB_CLI} config:set board_disable 0
+
+fxTitle "Final cache flushing..."
+${PHPBB_CLI} cache:purge
 
 fxEndFooter
