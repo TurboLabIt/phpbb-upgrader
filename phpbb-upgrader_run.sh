@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+
+## Based on https://www.phpbb.com/support/docs/en/3.3/ug/upgradeguide/update_full/
+
 SCRIPT_NAME=phpbb-upgrader
 
 ## bash-fx
