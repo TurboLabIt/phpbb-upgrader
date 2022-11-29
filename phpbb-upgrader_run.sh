@@ -111,8 +111,8 @@ fi
 
 fxTitle "Removing stuff from the extracted data..."
 rm -f "${PHPBB_NEW_TEMP_DIR_FILES}config.php"
-rm -rf "${PHPBB_NEW_TEMP_DIR_FILES}images"
 rm -rf "${PHPBB_NEW_TEMP_DIR_FILES}files"
+rm -rf "${PHPBB_NEW_TEMP_DIR_FILES}images"
 rm -rf "${PHPBB_NEW_TEMP_DIR_FILES}store"
 rm -rf "${PHPBB_NEW_TEMP_DIR_FILES}docs"
 
@@ -125,16 +125,25 @@ fxTitle "Copying stuff over from the old directory to the new one..."
 cp -a "${PHPBB_DIR}.gitignore" "${PHPBB_NEW_TEMP_DIR_FILES}"
 cp -a "${PHPBB_DIR}config.php" "${PHPBB_NEW_TEMP_DIR_FILES}"
 cp -a "${PHPBB_DIR}ext" "${PHPBB_NEW_TEMP_DIR_FILES}"
-cp -a "${PHPBB_DIR}images" "${PHPBB_NEW_TEMP_DIR_FILES}"
 cp -a "${PHPBB_DIR}files" "${PHPBB_NEW_TEMP_DIR_FILES}"
+cp -a "${PHPBB_DIR}images" "${PHPBB_NEW_TEMP_DIR_FILES}"
 cp -a "${PHPBB_DIR}store" "${PHPBB_NEW_TEMP_DIR_FILES}"
-cp -a "${PHPBB_DIR}styles" "${PHPBB_NEW_TEMP_DIR_FILES}"
+cp -a "${PHPBB_DIR}styles" "${PHPBB_NEW_TEMP_DIR_FILES}styles_old"
 cp -a "${PHPBB_DIR}mobiquo" "${PHPBB_NEW_TEMP_DIR_FILES}"
-cp -a "${PHPBB_DIR}language/it" "${PHPBB_NEW_TEMP_DIR_FILES}language"
+cp -a "${PHPBB_DIR}language" "${PHPBB_NEW_TEMP_DIR_FILES}language_old"
 
 fxTitle "Removing stuff from the new instance..."
 rm -rf "${PHPBB_NEW_TEMP_DIR_FILES}ext/phpbb/viglink"
 find "${PHPBB_NEW_TEMP_DIR_FILES}store" -type f -mtime +15 -name '*.log' -delete
+
+fxTitle "Merging some directories..."
+mv "${PHPBB_NEW_TEMP_DIR_FILES}styles/"* "${PHPBB_NEW_TEMP_DIR_FILES}styles_old"
+rm -rf "${PHPBB_NEW_TEMP_DIR_FILES}styles"
+mv "${PHPBB_NEW_TEMP_DIR_FILES}styles_old" "${PHPBB_NEW_TEMP_DIR_FILES}styles"
+
+mv "${PHPBB_NEW_TEMP_DIR_FILES}language/"* "${PHPBB_NEW_TEMP_DIR_FILES}language_old"
+rm -rf "${PHPBB_NEW_TEMP_DIR_FILES}language"
+mv "${PHPBB_NEW_TEMP_DIR_FILES}language_old" "${PHPBB_NEW_TEMP_DIR_FILES}language"
 
 fxTitle "DB upgrade..."
 chmod ugo=rwx ${PHPBB_NEW_TEMP_DIR} -R
