@@ -34,16 +34,6 @@ fi
 
 fxOK "OK, ##${PHPBB_DIR}viewtopic.php## found!"
 
-PHPBB_CLI="sudo -u www-data -H XDEBUG_MODE=off php ${PHPBB_DIR}bin/phpbbcli.php"
-
-fxTitle "Creating backup directory..."
-echo "${PHPBB_BACKUP_DIR}"
-mkdir -p "${PHPBB_BACKUP_DIR}"
-touch "${PHPBB_BACKUP_DIR}WARNING! ⚠️ This folder gets cleaned periodically ⚠️"
-
-fxTitle "New version check..."
-${PHPBB_CLI} update:check
-
 fxTitle "Retriving zip URL..."
 PHPBB_LOCATION_URL=https://raw.githubusercontent.com/TurboLabIt/phpbb-upgrader/main/phpbb-latest-url.txt
 fxInfo "${PHPBB_LOCATION_URL}"
@@ -52,7 +42,43 @@ if [ "$?" != 0 ]; then
   fxCatastrophicError "Failure! Response: ##${PHPBB_NEW_ZIP}##"
 fi
 
-awk '{$PHPBB_NEW_ZIP=$PHPBB_NEW_ZIP};1'
+PHPBB_NEW_ZIP=$(echo ${PHPBB_NEW_ZIP} | xargs)
 fxOK "OK, download URL is ##${PHPBB_NEW_ZIP}##"
+
+fxTitle "Creating backup directory..."
+fxInfo "${PHPBB_BACKUP_DIR}"
+mkdir -p "${PHPBB_BACKUP_DIR}"
+
+fxTitle "Preparing variables..."
+PHPBB_BACKUP_OLD_DIR=${PHPBB_BACKUP_DIR}forum_old/
+PHPBB_BACKUP_ZIP=${PHPBB_BACKUP_DIR}phpbb-upgrader-backup.zip
+PHPBB_DOWNLOADED_ZIP=/tmp/phpbb-upgrader_new-version.zip
+PHPBB_NEW_TEMP_DIR=${PHPBB_BACKUP_DIR}forum_new/
+
+fxMessage "👴 Old copy (to be zipped):        ##${PHPBB_BACKUP_OLD_DIR}##"
+fxMessage "🗜 Backup, zipped:                  ##${PHPBB_BACKUP_ZIP}##"
+fxMessage "⏬ New, downloaded version (zip):  ##${PHPBB_DOWNLOADED_ZIP}##"
+fxMessage "🛕 New version:                    ##${PHPBB_NEW_TEMP_DIR}##"
+
+fxTitle "Removing any leftovers..."
+rm -rf "${PHPBB_BACKUP_OLD_DIR}"
+rm -f "${PHPBB_BACKUP_ZIP}"
+rm -f "${PHPBB_DOWNLOADED_ZIP}"
+rm -rf "${PHPBB_NEW_TEMP_DIR}"
+
+fxTitle "New version check..."
+PHPBB_CLI="sudo -u www-data -H XDEBUG_MODE=off php ${PHPBB_DIR}bin/phpbbcli.php"
+${PHPBB_CLI} update:check
+
+fxTitle "Downloading the new phpBB package..."
+fxInfo "${PHPBB_NEW_ZIP}"
+curl --fail-with-body -Lo "${PHPBB_DOWNLOADED_ZIP}" "${PHPBB_NEW_ZIP}"
+if [ "$?" != 0 ]; then
+  fxMessage "$(cat ${PHPBB_DOWNLOADED_ZIP})"
+  rm -f "${PHPBB_DOWNLOADED_ZIP}"
+  fxCatastrophicError "Failure!"
+fi
+
+fxInfo "$(ls -lh ${PHPBB_DOWNLOADED_ZIP})"
 
 fxEndFooter
