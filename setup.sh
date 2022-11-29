@@ -12,6 +12,6 @@ sudo bash /usr/local/turbolab.it/bash-fx/setup/start.sh ${SCRIPT_NAME}
 fxLinkBin ${INSTALL_DIR}${SCRIPT_NAME}.sh
 
 ## zzmysqldump
-sudo apt install curl -y && curl -s https://raw.githubusercontent.com/TurboLabIt/zzmysqldump/master/setup.sh?$(date +%s) | sudo bash
+curl -s https://raw.githubusercontent.com/TurboLabIt/zzmysqldump/master/setup.sh?$(date +%s) | sudo bash
 
 sudo bash /usr/local/turbolab.it/bash-fx/setup/the-end.sh ${SCRIPT_NAME}
