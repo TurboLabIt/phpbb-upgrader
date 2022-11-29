@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 SCRIPT_NAME=phpbb-upgrader
-echo "$1 / $2"
+
 ## bash-fx
 if [ -z $(command -v curl) ]; then sudo apt update && sudo apt install curl -y; fi
 
@@ -20,11 +20,38 @@ fi
 
 fxConfigLoader "$1"
 
+fxTitle "Path check..."
+if [ -z "${PHPBB_DIR}" ] || [ ! -d "${PHPBB_DIR}" ]; then
+  fxCatastrophicError "phpBB directory ##${PHPBB_DIR}## not found!"
+fi
+
+PHPBB_DIR=${PHPBB_DIR%/}/
+fxOK "OK, ##${PHPBB_DIR}## found!"
+
+if  [ ! -f "${PHPBB_DIR}viewtopic.php" ]; then
+  fxCatastrophicError "File ##${PHPBB_DIR}viewtopic.php## not found!"
+fi
+
+fxOK "OK, ##${PHPBB_DIR}viewtopic.php## found!"
+
+PHPBB_CLI="sudo -u www-data -H XDEBUG_MODE=off php ${PHPBB_DIR}bin/phpbbcli.php"
+
 fxTitle "Creating backup directory..."
 echo "${PHPBB_BACKUP_DIR}"
 mkdir -p "${PHPBB_BACKUP_DIR}"
 touch "${PHPBB_BACKUP_DIR}WARNING! ⚠️ This folder gets cleaned periodically ⚠️"
 
+fxTitle "New version check..."
+${PHPBB_CLI} update:check
 
+fxTitle "Retriving zip URL..."
+PHPBB_LOCATION_URL=https://raw.githubusercontent.com/TurboLabIt/phpbb-upgrader/main/phpbb-latest-url.txt
+fxInfo "${PHPBB_LOCATION_URL}"
+PHPBB_NEW_ZIP=$(curl -L --fail-with-body ${PHPBB_LOCATION_URL})
+if [ "$?" != 0 ]; then
+  fxCatastrophicError "Failure! Response: ##${PHPBB_NEW_ZIP}##"
+fi
+
+fxOK "OK, download URL is ##${PHPBB_NEW_ZIP}##"
 
 fxEndFooter
