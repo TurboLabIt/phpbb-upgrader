@@ -52,6 +52,7 @@ if [ "$?" != 0 ]; then
   fxCatastrophicError "Failure! Response: ##${PHPBB_NEW_ZIP}##"
 fi
 
+awk '{$PHPBB_NEW_ZIP=$PHPBB_NEW_ZIP};1'
 fxOK "OK, download URL is ##${PHPBB_NEW_ZIP}##"
 
 fxEndFooter
