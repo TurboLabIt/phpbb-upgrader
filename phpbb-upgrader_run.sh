@@ -54,11 +54,14 @@ PHPBB_BACKUP_OLD_DIR=${PHPBB_BACKUP_DIR}forum_old/
 PHPBB_BACKUP_ZIP=${PHPBB_BACKUP_DIR}phpbb-upgrader-backup.zip
 PHPBB_DOWNLOADED_ZIP=/tmp/phpbb-upgrader_new-version.zip
 PHPBB_NEW_TEMP_DIR=${PHPBB_BACKUP_DIR}forum_new/
+## the downloaded zip has a phpBB root dir inside
+PHPBB_NEW_TEMP_DIR_FILES=${PHPBB_NEW_TEMP_DIR}phpBB3/
 
-fxMessage "👴 Old copy (to be zipped):        ##${PHPBB_BACKUP_OLD_DIR}##"
+fxMessage "👴 Old instance (to be zipped):    ##${PHPBB_BACKUP_OLD_DIR}##"
 fxMessage "🗜 Backup, zipped:                  ##${PHPBB_BACKUP_ZIP}##"
 fxMessage "⏬ New, downloaded version (zip):  ##${PHPBB_DOWNLOADED_ZIP}##"
-fxMessage "🛕 New version:                    ##${PHPBB_NEW_TEMP_DIR}##"
+fxMessage "🛕 New instance:                   ##${PHPBB_NEW_TEMP_DIR}##"
+fxMessage "😢 New instance subfolder:         ##${PHPBB_NEW_TEMP_DIR_FILES}##"
 
 fxTitle "Removing any leftovers..."
 rm -rf "${PHPBB_BACKUP_OLD_DIR}"
@@ -79,6 +82,49 @@ if [ "$?" != 0 ]; then
   fxCatastrophicError "Failure!"
 fi
 
+fxOK "OK, got it!"
 fxInfo "$(ls -lh ${PHPBB_DOWNLOADED_ZIP})"
+
+fxTitle "Test the downloaded file..."
+unzip -qt ${PHPBB_DOWNLOADED_ZIP}
+if [ "$?" != 0 ]; then
+  rm -f "${PHPBB_DOWNLOADED_ZIP}"
+  fxCatastrophicError "Failure!"
+fi
+
+fxTitle "Unzipping..."
+unzip -qo "${PHPBB_DOWNLOADED_ZIP}" -d "${PHPBB_NEW_TEMP_DIR}"
+UNZIP_RESULT=$?
+rm -f "${PHPBB_DOWNLOADED_ZIP}"
+if [ "$UNZIP_RESULT" != 0 ]; then
+  fxCatastrophicError "Failure!"
+fi
+
+fxTitle "Checking unzipped files..."
+ls -l "${PHPBB_NEW_TEMP_DIR}"
+echo "-----"
+ls -l "${PHPBB_NEW_TEMP_DIR_FILES}"
+if [ ! -f "${PHPBB_NEW_TEMP_DIR_FILES}viewtopic.php" ]; then
+  rm -rf "${PHPBB_NEW_TEMP_DIR}"
+  fxCatastrophicError "viewtopic.php doesn't exist in ${PHPBB_NEW_TEMP_DIR_FILES}viewtopic.php"
+fi
+
+fxTitle "Closing the board..."
+${PHPBB_CLI} config:set board_disable 1
+
+zzmysqldump ${PHPBB_ZZMYSQLDUMP_PROFILE_NAME}
+
+fxTitle "Zipping the current instance for backup..."
+zip -qr9 "${PHPBB_BACKUP_ZIP}" "${PHPBB_DIR}"
+fxOK "OK, backup zip created in ##${PHPBB_BACKUP_ZIP}##"
+fxInfo "$(ls -lh ${PHPBB_BACKUP_ZIP})"
+
+fxTitle "Test the backup..."
+unzip -l ${PHPBB_BACKUP_ZIP}
+unzip -qt ${PHPBB_BACKUP_ZIP}
+if [ "$?" != 0 ]; then
+  rm -f "${PHPBB_BACKUP_ZIP}"
+  fxCatastrophicError "Failure!"
+fi
 
 fxEndFooter
