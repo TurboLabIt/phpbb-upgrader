@@ -68,7 +68,8 @@ ${PHPBB_CLI} update:check
 
 fxTitle "Retriving zip URL..."
 fxInfo "${PHPBB_LOCATION_URL}"
-PHPBB_NEW_ZIP=$(curl -L --fail-with-body ${PHPBB_LOCATION_URL})
+## with ubuntu 22.04:  curl --fail-with-body ...
+PHPBB_NEW_ZIP=$(curl -L --fail ${PHPBB_LOCATION_URL})
 if [ "$?" != 0 ]; then
   fxCatastrophicError "Failure! Response: ##${PHPBB_NEW_ZIP}##"
 fi
@@ -80,7 +81,8 @@ fxTitle "Downloading the new phpBB package..."
 if [ ! -f "${PHPBB_DOWNLOADED_ZIP}" ]; then
 
   fxInfo "${PHPBB_NEW_ZIP}"
-  curl --fail-with-body -Lo "${PHPBB_DOWNLOADED_ZIP}" "${PHPBB_NEW_ZIP}"
+  ## with ubuntu 22.04: curl --fail-with-body ...
+  curl --fail -Lo "${PHPBB_DOWNLOADED_ZIP}" "${PHPBB_NEW_ZIP}"
   if [ "$?" != 0 ]; then
     fxMessage "$(cat ${PHPBB_DOWNLOADED_ZIP})"
     rm -f "${PHPBB_DOWNLOADED_ZIP}"
