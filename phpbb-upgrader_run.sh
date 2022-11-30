@@ -37,17 +37,6 @@ fi
 
 fxOK "OK, ##${PHPBB_DIR}viewtopic.php## found!"
 
-fxTitle "Retriving zip URL..."
-PHPBB_LOCATION_URL=https://raw.githubusercontent.com/TurboLabIt/phpbb-upgrader/main/phpbb-latest-url.txt
-fxInfo "${PHPBB_LOCATION_URL}"
-PHPBB_NEW_ZIP=$(curl -L --fail-with-body ${PHPBB_LOCATION_URL})
-if [ "$?" != 0 ]; then
-  fxCatastrophicError "Failure! Response: ##${PHPBB_NEW_ZIP}##"
-fi
-
-PHPBB_NEW_ZIP=$(echo ${PHPBB_NEW_ZIP} | xargs)
-fxOK "OK, download URL is ##${PHPBB_NEW_ZIP}##"
-
 fxTitle "Preparing variables..."
 PHPBB_BACKUP_DIR=${PHPBB_BACKUP_DIR%/}/
 PHPBB_BACKUP_ZIP=${PHPBB_BACKUP_DIR}phpbb-upgrader-backup.zip
@@ -55,14 +44,16 @@ PHPBB_DOWNLOADED_ZIP=/tmp/phpbb-upgrader_new-version.zip
 PHPBB_NEW_TEMP_DIR=/tmp/phpbb-upgrader_new-instance/
 ## the downloaded zip has a phpBB root dir inside
 PHPBB_NEW_TEMP_DIR_FILES=${PHPBB_NEW_TEMP_DIR}phpBB3/
+PHPBB_LOCATION_URL=https://raw.githubusercontent.com/TurboLabIt/phpbb-upgrader/main/phpbb-latest-url.txt
 
 fxMessage "👴 Old instance backup:            ##${PHPBB_BACKUP_DIR}##"
 fxMessage "🗜 Backup, zipped:                  ##${PHPBB_BACKUP_ZIP}##"
 fxMessage "⏬ New, downloaded version (zip):  ##${PHPBB_DOWNLOADED_ZIP}##"
 fxMessage "🛕 New instance:                   ##${PHPBB_NEW_TEMP_DIR}##"
 fxMessage "😢 New instance subfolder:         ##${PHPBB_NEW_TEMP_DIR_FILES}##"
+fxMessage "🐐 Zip locator:                    ##${PHPBB_LOCATION_URL}##"
 
-fxTitle "Creating backup directory..."
+fxTitle "Creating the backup directory..."
 fxInfo "${PHPBB_BACKUP_DIR}"
 mkdir -p "${PHPBB_BACKUP_DIR}"
 
@@ -74,6 +65,16 @@ rm -rf "${PHPBB_NEW_TEMP_DIR}"
 fxTitle "New version check..."
 PHPBB_CLI="sudo -u www-data -H XDEBUG_MODE=off php ${PHPBB_DIR}bin/phpbbcli.php"
 ${PHPBB_CLI} update:check
+
+fxTitle "Retriving zip URL..."
+fxInfo "${PHPBB_LOCATION_URL}"
+PHPBB_NEW_ZIP=$(curl -L --fail-with-body ${PHPBB_LOCATION_URL})
+if [ "$?" != 0 ]; then
+  fxCatastrophicError "Failure! Response: ##${PHPBB_NEW_ZIP}##"
+fi
+
+PHPBB_NEW_ZIP=$(echo ${PHPBB_NEW_ZIP} | xargs)
+fxOK "OK, download URL is ##${PHPBB_NEW_ZIP}##"
 
 fxTitle "Downloading the new phpBB package..."
 if [ ! -f "${PHPBB_DOWNLOADED_ZIP}" ]; then
