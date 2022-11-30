@@ -155,23 +155,24 @@ rsync -a "${PHPBB_NEW_TEMP_DIR_FILES}language/" "${PHPBB_NEW_TEMP_DIR_FILES}lang
 rm -rf "${PHPBB_NEW_TEMP_DIR_FILES}language"
 mv "${PHPBB_NEW_TEMP_DIR_FILES}language_old" "${PHPBB_NEW_TEMP_DIR_FILES}language"
 
+fxTitle "DB upgrade..."
+chmod ugo=rwx ${PHPBB_NEW_TEMP_DIR} -R
+sudo -u www-data -H XDEBUG_MODE=off php ${PHPBB_NEW_TEMP_DIR_FILES}bin/phpbbcli.php db:migrate --safe-mode
+
 fxTitle "Setting root:www-data as owner..."
 chown root:www-data "${PHPBB_NEW_TEMP_DIR_FILES}" -R
 
-fxTitle "Applying general, strict permissions..."
+fxTitle "Applying strict permissions..."
 # reset, to make "rwX" work as expected
 chmod ugo= "${PHPBB_NEW_TEMP_DIR_FILES}" -R
 chmod u=rwX,g=rX,o= "${PHPBB_NEW_TEMP_DIR_FILES}" -R
+chmod ug=r,o= "${PHPBB_NEW_TEMP_DIR_FILES}config.php"
 
 fxTitle "Making some folders writable by www-data..."
 chmod ug=rwX,o= ${PHPBB_NEW_TEMP_DIR_FILES}cache -R
 chmod ug=rwX,o= ${PHPBB_NEW_TEMP_DIR_FILES}images/avatars/upload -R
 chmod ug=rwX,o= ${PHPBB_NEW_TEMP_DIR_FILES}files -R
 chmod ug=rwX,o= ${PHPBB_NEW_TEMP_DIR_FILES}store -R
-
-fxTitle "DB upgrade..."
-chmod ugo=rwx ${PHPBB_NEW_TEMP_DIR} -R
-sudo -u www-data -H XDEBUG_MODE=off php ${PHPBB_NEW_TEMP_DIR_FILES}bin/phpbbcli.php db:migrate --safe-mode
 
 fxTitle "Removing the install directory..."
 rm -rf "${PHPBB_NEW_TEMP_DIR_FILES}install"
