@@ -53,14 +53,14 @@ fxInfo "${PHPBB_BACKUP_DIR}"
 mkdir -p "${PHPBB_BACKUP_DIR}"
 
 fxTitle "Preparing variables..."
-PHPBB_BACKUP_OLD_DIR=${PHPBB_BACKUP_DIR}forum_old/
+PHPBB_BACKUP_OLD_DIR=${PHPBB_BACKUP_DIR}phpbb-upgrader_old-instance/
 PHPBB_BACKUP_ZIP=${PHPBB_BACKUP_DIR}phpbb-upgrader-backup.zip
 PHPBB_DOWNLOADED_ZIP=/tmp/phpbb-upgrader_new-version.zip
-PHPBB_NEW_TEMP_DIR=${PHPBB_BACKUP_DIR}forum_new/
+PHPBB_NEW_TEMP_DIR=/tmp/phpbb-upgrader_new-instance/
 ## the downloaded zip has a phpBB root dir inside
 PHPBB_NEW_TEMP_DIR_FILES=${PHPBB_NEW_TEMP_DIR}phpBB3/
 
-fxMessage "👴 Old instance (to be zipped):    ##${PHPBB_BACKUP_OLD_DIR}##"
+fxMessage "👴 Old instance backup:            ##${PHPBB_BACKUP_OLD_DIR}##"
 fxMessage "🗜 Backup, zipped:                  ##${PHPBB_BACKUP_ZIP}##"
 fxMessage "⏬ New, downloaded version (zip):  ##${PHPBB_DOWNLOADED_ZIP}##"
 fxMessage "🛕 New instance:                   ##${PHPBB_NEW_TEMP_DIR}##"
@@ -69,7 +69,6 @@ fxMessage "😢 New instance subfolder:         ##${PHPBB_NEW_TEMP_DIR_FILES}##"
 fxTitle "Removing any leftovers..."
 rm -rf "${PHPBB_BACKUP_OLD_DIR}"
 rm -f "${PHPBB_BACKUP_ZIP}"
-rm -f "${PHPBB_DOWNLOADED_ZIP}"
 rm -rf "${PHPBB_NEW_TEMP_DIR}"
 
 fxTitle "New version check..."
@@ -77,29 +76,37 @@ PHPBB_CLI="sudo -u www-data -H XDEBUG_MODE=off php ${PHPBB_DIR}bin/phpbbcli.php"
 ${PHPBB_CLI} update:check
 
 fxTitle "Downloading the new phpBB package..."
-fxInfo "${PHPBB_NEW_ZIP}"
-curl --fail-with-body -Lo "${PHPBB_DOWNLOADED_ZIP}" "${PHPBB_NEW_ZIP}"
-if [ "$?" != 0 ]; then
-  fxMessage "$(cat ${PHPBB_DOWNLOADED_ZIP})"
-  rm -f "${PHPBB_DOWNLOADED_ZIP}"
-  fxCatastrophicError "Failure!"
+if [ ! -f "${PHPBB_DOWNLOADED_ZIP}" ]; then
+
+  fxInfo "${PHPBB_NEW_ZIP}"
+  curl --fail-with-body -Lo "${PHPBB_DOWNLOADED_ZIP}" "${PHPBB_NEW_ZIP}"
+  if [ "$?" != 0 ]; then
+    fxMessage "$(cat ${PHPBB_DOWNLOADED_ZIP})"
+    rm -f "${PHPBB_DOWNLOADED_ZIP}"
+    fxCatastrophicError "Failure!"
+  fi
+
+  fxOK "OK, got it!"
+
+  fxTitle "Test the downloaded file..."
+  unzip -qt ${PHPBB_DOWNLOADED_ZIP}
+  if [ "$?" != 0 ]; then
+    rm -f "${PHPBB_DOWNLOADED_ZIP}"
+    fxCatastrophicError "Failure!"
+  fi
+
+else
+
+  fxOK "Cached zip found, download skipped!"
 fi
 
-fxOK "OK, got it!"
+fxInfo "Downloaded zip: ##${PHPBB_DOWNLOADED_ZIP}##"
 fxInfo "$(ls -lh ${PHPBB_DOWNLOADED_ZIP})"
-
-fxTitle "Test the downloaded file..."
-unzip -qt ${PHPBB_DOWNLOADED_ZIP}
-if [ "$?" != 0 ]; then
-  rm -f "${PHPBB_DOWNLOADED_ZIP}"
-  fxCatastrophicError "Failure!"
-fi
 
 fxTitle "Unzipping..."
 unzip -qo "${PHPBB_DOWNLOADED_ZIP}" -d "${PHPBB_NEW_TEMP_DIR}"
-UNZIP_RESULT=$?
-rm -f "${PHPBB_DOWNLOADED_ZIP}"
-if [ "$UNZIP_RESULT" != 0 ]; then
+if [ "$?" != 0 ]; then
+  rm -f "${PHPBB_DOWNLOADED_ZIP}"
   fxCatastrophicError "Failure!"
 fi
 
@@ -136,24 +143,16 @@ cp -a "${PHPBB_DIR}mobiquo" "${PHPBB_NEW_TEMP_DIR_FILES}"
 cp -a "${PHPBB_DIR}language" "${PHPBB_NEW_TEMP_DIR_FILES}language_old"
 
 fxTitle "Removing stuff from the new instance..."
-rm -rf "${PHPBB_NEW_TEMP_DIR_FILES}ext/phpbb/viglink"
 find "${PHPBB_NEW_TEMP_DIR_FILES}store" -type f -mtime +15 -name '*.log' -delete
 
 fxTitle "Merging some directories..."
-mv "${PHPBB_NEW_TEMP_DIR_FILES}styles/"* "${PHPBB_NEW_TEMP_DIR_FILES}styles_old"
+rsync -a "${PHPBB_NEW_TEMP_DIR_FILES}styles/" "${PHPBB_NEW_TEMP_DIR_FILES}styles_old/"
 rm -rf "${PHPBB_NEW_TEMP_DIR_FILES}styles"
 mv "${PHPBB_NEW_TEMP_DIR_FILES}styles_old" "${PHPBB_NEW_TEMP_DIR_FILES}styles"
 
-mv "${PHPBB_NEW_TEMP_DIR_FILES}language/"* "${PHPBB_NEW_TEMP_DIR_FILES}language_old"
+rsync -a "${PHPBB_NEW_TEMP_DIR_FILES}language/" "${PHPBB_NEW_TEMP_DIR_FILES}language_old/"
 rm -rf "${PHPBB_NEW_TEMP_DIR_FILES}language"
 mv "${PHPBB_NEW_TEMP_DIR_FILES}language_old" "${PHPBB_NEW_TEMP_DIR_FILES}language"
-
-fxTitle "DB upgrade..."
-chmod ugo=rwx ${PHPBB_NEW_TEMP_DIR} -R
-sudo -u www-data -H XDEBUG_MODE=off php ${PHPBB_NEW_TEMP_DIR_FILES}bin/phpbbcli.php db:migrate --safe-mode
-
-fxTitle "Removing the install directory..."
-rm -rf "${PHPBB_NEW_TEMP_DIR_FILES}install"
 
 fxTitle "Setting root:www-data as owner..."
 chown root:www-data "${PHPBB_NEW_TEMP_DIR_FILES}" -R
@@ -169,11 +168,25 @@ chmod ug=rwX,o= ${PHPBB_NEW_TEMP_DIR_FILES}images/avatars/upload -R
 chmod ug=rwX,o= ${PHPBB_NEW_TEMP_DIR_FILES}files -R
 chmod ug=rwX,o= ${PHPBB_NEW_TEMP_DIR_FILES}store -R
 
+fxTitle "DB upgrade..."
+chmod ugo=rwx ${PHPBB_NEW_TEMP_DIR} -R
+sudo -u www-data -H XDEBUG_MODE=off php ${PHPBB_NEW_TEMP_DIR_FILES}bin/phpbbcli.php db:migrate --safe-mode
+
+fxTitle "Removing the install directory..."
+rm -rf "${PHPBB_NEW_TEMP_DIR_FILES}install"
+
 fxTitle "🚀🚀🚀 BRACE FOR IMPACT - MOVING THE OLD INSTANCE TO BACKUP 🚀🚀🚀"
 mv "${PHPBB_DIR}" "${PHPBB_BACKUP_OLD_DIR}"
 
 fxTitle "🚀🚀🚀 HOLD TIGHT - MOVING THE NEW INSTANCE IN 🚀🚀🚀"
 mv "${PHPBB_NEW_TEMP_DIR_FILES}" "${PHPBB_DIR}"
+
+fxTitle "💨 Running ${PHPBB_AFTER_UPGRADE_SCRIPT}..."
+if [ ! -z "${PHPBB_AFTER_UPGRADE_SCRIPT}" ]; then
+  bash "$PHPBB_AFTER_UPGRADE_SCRIPT"
+else
+  fxInfo "No after-upgrade script configured"
+fi
 
 fxTitle "Re-opening the board..."
 ${PHPBB_CLI} config:set board_disable 0

@@ -9,7 +9,7 @@ source /usr/local/turbolab.it/bash-fx/bash-fx.sh
 ## bash-fx is ready
 
 sudo bash /usr/local/turbolab.it/bash-fx/setup/start.sh ${SCRIPT_NAME}
-sudo apt install -y zip unzip
+sudo apt install -y zip unzip rsync
 fxLinkBin ${INSTALL_DIR}${SCRIPT_NAME}.sh
 
 ## zzmysqldump
