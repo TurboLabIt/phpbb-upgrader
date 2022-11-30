@@ -48,26 +48,26 @@ fi
 PHPBB_NEW_ZIP=$(echo ${PHPBB_NEW_ZIP} | xargs)
 fxOK "OK, download URL is ##${PHPBB_NEW_ZIP}##"
 
-fxTitle "Creating backup directory..."
-fxInfo "${PHPBB_BACKUP_DIR}"
-mkdir -p "${PHPBB_BACKUP_DIR}"
-
 fxTitle "Preparing variables..."
-PHPBB_BACKUP_OLD_DIR=${PHPBB_BACKUP_DIR}phpbb-upgrader_old-instance/
+PHPBB_BACKUP_DIR=${PHPBB_BACKUP_DIR%/}/
 PHPBB_BACKUP_ZIP=${PHPBB_BACKUP_DIR}phpbb-upgrader-backup.zip
 PHPBB_DOWNLOADED_ZIP=/tmp/phpbb-upgrader_new-version.zip
 PHPBB_NEW_TEMP_DIR=/tmp/phpbb-upgrader_new-instance/
 ## the downloaded zip has a phpBB root dir inside
 PHPBB_NEW_TEMP_DIR_FILES=${PHPBB_NEW_TEMP_DIR}phpBB3/
 
-fxMessage "👴 Old instance backup:            ##${PHPBB_BACKUP_OLD_DIR}##"
+fxMessage "👴 Old instance backup:            ##${PHPBB_BACKUP_DIR}##"
 fxMessage "🗜 Backup, zipped:                  ##${PHPBB_BACKUP_ZIP}##"
 fxMessage "⏬ New, downloaded version (zip):  ##${PHPBB_DOWNLOADED_ZIP}##"
 fxMessage "🛕 New instance:                   ##${PHPBB_NEW_TEMP_DIR}##"
 fxMessage "😢 New instance subfolder:         ##${PHPBB_NEW_TEMP_DIR_FILES}##"
 
+fxTitle "Creating backup directory..."
+fxInfo "${PHPBB_BACKUP_DIR}"
+mkdir -p "${PHPBB_BACKUP_DIR}"
+
 fxTitle "Removing any leftovers..."
-rm -rf "${PHPBB_BACKUP_OLD_DIR}"
+rm -rf "${PHPBB_BACKUP_DIR}"
 rm -f "${PHPBB_BACKUP_ZIP}"
 rm -rf "${PHPBB_NEW_TEMP_DIR}"
 
@@ -176,7 +176,7 @@ fxTitle "Removing the install directory..."
 rm -rf "${PHPBB_NEW_TEMP_DIR_FILES}install"
 
 fxTitle "🚀🚀🚀 BRACE FOR IMPACT - MOVING THE OLD INSTANCE TO BACKUP 🚀🚀🚀"
-mv "${PHPBB_DIR}" "${PHPBB_BACKUP_OLD_DIR}"
+mv "${PHPBB_DIR}" "${PHPBB_BACKUP_DIR}"
 
 fxTitle "🚀🚀🚀 HOLD TIGHT - MOVING THE NEW INSTANCE IN 🚀🚀🚀"
 mv "${PHPBB_NEW_TEMP_DIR_FILES}" "${PHPBB_DIR}"
