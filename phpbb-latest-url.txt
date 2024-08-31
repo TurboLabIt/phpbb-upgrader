@@ -1,1 +1,1 @@
-https://download.phpbb.com/pub/release/3.3/3.3.12/phpBB-3.3.12.zip
+https://download.phpbb.com/pub/release/3.3/3.3.13/phpBB-3.3.13.zip
