@@ -78,6 +78,12 @@ PHPBB_NEW_ZIP=$(echo ${PHPBB_NEW_ZIP} | xargs)
 fxOK "OK, download URL is ##${PHPBB_NEW_ZIP}##"
 
 fxTitle "Downloading the new phpBB package..."
+## re-use the cached zip only if it's recent: an older one may be a previous phpBB release
+if [ -f "${PHPBB_DOWNLOADED_ZIP}" ] && [ -z "$(find "${PHPBB_DOWNLOADED_ZIP}" -mmin -30)" ]; then
+  fxInfo "Cached zip is older than 30 minutes, removing it..."
+  rm -f "${PHPBB_DOWNLOADED_ZIP}"
+fi
+
 if [ ! -f "${PHPBB_DOWNLOADED_ZIP}" ]; then
 
   fxInfo "${PHPBB_NEW_ZIP}"
@@ -100,7 +106,7 @@ if [ ! -f "${PHPBB_DOWNLOADED_ZIP}" ]; then
 
 else
 
-  fxOK "Cached zip found, download skipped!"
+  fxOK "Cached zip is less than 30 minutes old, download skipped!"
 fi
 
 fxInfo "Downloaded zip: ##${PHPBB_DOWNLOADED_ZIP}##"
